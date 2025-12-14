@@ -11,6 +11,7 @@ env:
   REGION: asia-northeast1
   REPO_NAME: antigravity-repo
   SERVICE_NAME: antigravity-api
+  IMAGE: ${{ secrets.GCP_PROJECT_ID == '' && 'invalid-no-project-id' || format('{0}-docker.pkg.dev/{1}/{2}/api:{3}', 'asia-northeast1', secrets.GCP_PROJECT_ID, 'antigravity-repo', github.sha) }}
 
 jobs:
   deploy:
@@ -31,18 +32,25 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
+      - name: Debug Info
+        run: |
+          echo "Project ID: ${{ env.PROJECT_ID }}"
+          echo "Region: ${{ env.REGION }}"
+          echo "Repo Name: ${{ env.REPO_NAME }}"
+          echo "Image: ${{ env.IMAGE }}"
+
       - name: Configure Docker
         run: |
           gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
 
       - name: Build and Push Container
         run: |
-          docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/api:${{ github.sha }} .
-          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/api:${{ github.sha }}
+          docker build -t ${{ env.IMAGE }} .
+          docker push ${{ env.IMAGE }}
 
       - name: Deploy to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: ${{ env.SERVICE_NAME }}
           region: ${{ env.REGION }}
-          image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/api:${{ github.sha }}
+          image: ${{ env.IMAGE }}
