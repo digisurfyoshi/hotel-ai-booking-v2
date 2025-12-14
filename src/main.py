@@ -15,6 +15,8 @@ def on_startup():
     db.close()
 
 app.include_router(auth.router)
+from .api.routes import hotels
+app.include_router(hotels.router)
 
 @app.get("/")
 def read_root():
