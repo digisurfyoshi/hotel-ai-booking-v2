@@ -1,11 +1,20 @@
 from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
-from .db import models, database
+from .db import models, database, init_db
+from .api.routes import auth
 
 # Create tables
 models.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI(title="Antigravity API")
+
+@app.on_event("startup")
+def on_startup():
+    db = database.SessionLocal()
+    init_db.init_db(db)
+    db.close()
+
+app.include_router(auth.router)
 
 @app.get("/")
 def read_root():
